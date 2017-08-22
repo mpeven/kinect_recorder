@@ -103,11 +103,6 @@ class KinectRecorder(threading.Thread):
                 depth_array,_ = freenect.sync_get_depth()
                 depth_array = depth_array.astype(np.uint8)
 
-                # Encrypt images
-                if self.encrypt:
-
-                # TODO
-
                 # Save images and metadata
                 out_rgb.write(rgb_array)
                 out_depth.write(depth_array)

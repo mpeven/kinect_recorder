@@ -2,6 +2,7 @@ import freenect
 import cv2
 import numpy as np
 import logging
+logging.basicConfig(level=logging.DEBUG)
 import datetime as dt
 
 class KinectRecorder:
