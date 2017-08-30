@@ -1,2 +1,4 @@
+av==0.3.3
+pandas==0.20.3
 prompter==0.3.10
 pynacl==1.1.2
