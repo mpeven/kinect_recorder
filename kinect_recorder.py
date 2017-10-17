@@ -1,6 +1,6 @@
 import freenect
 import cv2, av
-import os
+import os, sys
 import glob, shutil
 import numpy as np
 import pandas as pd
@@ -9,7 +9,7 @@ pd.set_option('display.max_rows', 30)
 pd.set_option('display.max_columns', 30)
 pd.set_option('display.precision', 4)
 import logging
-logging.basicConfig(level=logging.DEBUG)
+from logging.handlers import TimedRotatingFileHandler
 import time, datetime as dt
 import json
 import tarfile
@@ -24,7 +24,6 @@ def test():
     recorder.start()
     proc = KinectProcessor(keep_running)
     proc.start()
-    # time.sleep(100000000)
 
 
 
@@ -37,9 +36,11 @@ client_public_key_file = 'client_key.pub'
 rambo_public_key_file = 'rambo_key.pub'
 
 # Directories and paths
-tar_dir = 'data'
-tmp_dir = 'tmp'
-key_dir = 'keys'
+base = os.path.dirname(os.path.realpath(__file__))
+tar_dir = os.path.join(base, 'data')
+tmp_dir = os.path.join(base, 'tmp')
+key_dir = os.path.join(base, 'keys')
+log_dir = os.path.join(base, 'logs')
 rgb_img_dir = os.path.join(tmp_dir, 'rgb_imgs')
 depth_img_dir = os.path.join(tmp_dir, 'depth_imgs')
 rgb_vid_file_path = os.path.join(tmp_dir, rgb_vid_file)
@@ -57,8 +58,21 @@ class KinectRecorder(Process):
     def __init__(self, keep_running):
         Process.__init__(self)
         self.keep_running = keep_running
+	# Set logging configuration
+        filehandler = TimedRotatingFileHandler(log_dir + "/" + 'log', when="m", interval=1)
+        streamhandler = logging.StreamHandler(stream=sys.stdout)
+        logging.basicConfig(
+            level=logging.DEBUG,
+            handlers=[streamhandler, filehandler],
+        )
+
+
+
 
     def run(self):
+        '''
+        Record until a keyboard interrupt
+        '''
         try:
             self._run()
         except KeyboardInterrupt:
@@ -66,7 +80,13 @@ class KinectRecorder(Process):
             self.keep_running.value = False
             self.stop()
 
+
+
+
     def _run(self):
+        '''
+        Record images until self.keep_running is set to false
+        '''
         # Turn light blinking green
         self.set_led(4)
 
@@ -91,18 +111,32 @@ class KinectRecorder(Process):
         # Clean up
         self.stop()
 
+
+
+
     def set_led(self, color):
+        '''
+        Change color of led on the front of the kinect
+        '''
         kinect_ctx = freenect.init()
         kinect = freenect.open_device(kinect_ctx, 0)
         freenect.set_led(kinect, color)
         freenect.close_device(kinect)
 
+
+
+
     def stop(self):
+        '''
+        Stop recording and clean up temporary images
+        '''
         logging.info("Stopping recording")
         freenect.sync_stop()
         self.set_led(0)
         logging.info("Cleaning up tmp files")
         shutil.rmtree(tmp_dir)
+
+
 
 
 

@@ -1,6 +1,7 @@
-# Ignore recorded clips
+# Ignore recorded clips and logs
 tmp/
 data/
+logs/log*
 
 # Ignore public/private keys
 keys/
