@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/GPU/MACHINE/py-faster-rcnn/tools')
+sys.path.append('/GPU_MACHINE/py-faster-rcnn/tools')
 import _init_paths
 from fast_rcnn.config import cfg
 from fast_rcnn.test import im_detect
