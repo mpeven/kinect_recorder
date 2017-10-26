@@ -6,21 +6,20 @@ import numpy as np
 import io
 from PIL import Image, ImageFilter, ImageDraw, ImageFont
 from tqdm import tqdm
-import cv2
 import subprocess
 
 BASE_PATH = "/edata/WICU_DATASET_2014/untar/WICU-room5_"
 KEY_FILE = "/edata/WICU_DATASET_2014/demoTracking/key.bin"
+OUT_DIR = "/edata/VIDS_FOR_ANDY"
 KEY = np.fromfile(KEY_FILE, dtype=np.int8)
 
-
+CAMERA_ID = 2
 SKIP_NUMBER = 2
 
 
 def main():
     image_paths_all = get_images()
     image_paths = [image_paths_all[i] for i in range(0, len(image_paths_all), SKIP_NUMBER)]
-
     print("Decrypting images")
     decrypted_images = [decrypt_image(i) for i in tqdm(image_paths)]
     print("Blurring images")
@@ -33,22 +32,31 @@ def main():
 
 
 def main_auto():
-    hour_paths = find_complete_hours(3)
+    hour_paths = find_complete_hours(CAMERA_ID)
     for hour_path in hour_paths:
         date = hour_path[-11:-3]
         hour = hour_path[-2:]
-        print("Creating a video for {}:{}".format(date, hour))
-        image_paths_all = get_images_in_path(hour_path)
-        image_paths = [image_paths_all[i] for i in range(0, len(image_paths_all), SKIP_NUMBER)]
-        print("Decrypting images")
-        decrypted_images = [decrypt_image(i) for i in tqdm(image_paths)]
-        print("Blurring images")
-        blurred_images   = [blur_image(i) for i in tqdm(decrypted_images)]
-        print("Adding text to images")
-        im_path = zip(blurred_images, image_paths)
-        final_images     = [draw_metadata(i[0], i[1]) for i in tqdm(im_path)]
-        print("Turning images into video")
-        imgs_to_vid(final_images, "/edata/VIDS_FOR_ANDY/{}_{}.mp4".format(date,hour))
+        filename = OUT_DIR + "/{}_{}_{}.mp4".format(CAMERA_ID,date,hour)
+        if os.path.exists(filename):
+            print("{} exists, skipping..".format(filename))
+        else:
+            create_and_save_vid(hour_path, filename)
+
+
+
+def create_and_save_vid(hour_path, filename):
+    print("Creating video {}".format(filename))
+    image_paths_all = get_images_in_path(hour_path)
+    image_paths = [image_paths_all[i] for i in range(0, len(image_paths_all), SKIP_NUMBER)]
+    print("Decrypting images")
+    decrypted_images = [decrypt_image(i) for i in tqdm(image_paths)]
+    print("Blurring images")
+    blurred_images   = [blur_image(i) for i in tqdm(decrypted_images)]
+    print("Adding text to images")
+    im_path = zip(blurred_images, image_paths)
+    final_images     = [draw_metadata(i[0], i[1]) for i in tqdm(im_path)]
+    print("Turning images into video")
+    imgs_to_vid(final_images, filename)
 
 
 
