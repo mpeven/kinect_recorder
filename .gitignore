@@ -1,4 +1,8 @@
+# Mac stuff
+.DS_Store
+
 # Ignore recorded clips and logs
+tmp_untar/
 tmp/
 data/
 logs/log*
