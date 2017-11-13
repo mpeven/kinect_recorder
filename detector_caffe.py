@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/GPU_MACHINE/py-faster-rcnn/tools')
+sys.path.append('/home/mpeven1/src/py-faster-rcnn/tools')
 import _init_paths
 from fast_rcnn.config import cfg
 from fast_rcnn.test import im_detect
@@ -19,11 +19,14 @@ import pickle
 from tqdm import tqdm
 
 CLASSES = ('__background__','Torso','Head','Left Arm','Right Arm','Leg')
-prototxt = '/home/mpeven/detector_tracker/test.prototxt'
-caffemodel = '/home/mpeven/detector_tracker/vgg_cnn_m_1024_faster_rcnn_peopledetection_iter_70000.caffemodel'
-detector_out_dir = '/edata/WICU_DATASET_2014/detector_output/'
-detector_example_dir = '/edata/WICU_DATASET_2014/detector_output/test_imgs/'
-KEY_FILE = "/data/WICU_DATASET_2014/demoTracking/key.bin"
+
+RAMBO_MOUNT_POINT = '/home/mpeven1/rambo'
+BASE_PATH = RAMBO_MOUNT_POINT + "/edata/WICU_DATASET_2014/untar/WICU-room5_"
+prototxt = RAMBO_MOUNT_POINT + '/home/mpeven/detector_tracker/test.prototxt'
+caffemodel = RAMBO_MOUNT_POINT + '/home/mpeven/detector_tracker/vgg_cnn_m_1024_faster_rcnn_peopledetection_iter_70000.caffemodel'
+detector_out_dir = RAMBO_MOUNT_POINT + '/edata/WICU_DATASET_2014/detector_output/'
+detector_example_dir = RAMBO_MOUNT_POINT + '/edata/WICU_DATASET_2014/detector_output/test_imgs/'
+KEY_FILE = RAMBO_MOUNT_POINT + "/edata/WICU_DATASET_2014/demoTracking/key.bin"
 KEY = np.fromfile(KEY_FILE, dtype=np.int8)
 
 
@@ -31,6 +34,9 @@ KEY = np.fromfile(KEY_FILE, dtype=np.int8)
 def main():
     #Get the images
     rgb_images, images_id = get_images()
+    print(images_id)
+    print len(rgb_images)
+    print rgb_images[:5]
 
     #Run the py-faster-rcnn detector
     print("Starting detector")
@@ -47,6 +53,15 @@ def main():
     print("Creating detections video took {:.1f}s to create".format(time_diff))
 
     #Save the detections
+    det_out_file = os.path.join(detector_out_dir, '{}.detections'.format(images_id))
+    pickle.dump(detections, open(det_out_file, 'w'))
+
+
+
+def main_auto():
+    rgb_imags, images_id = get_images()
+    print("Detecting on {}".format(images_id))
+    detections = detect(rgb_images)
     det_out_file = os.path.join(detector_out_dir, '{}.detections'.format(images_id))
     pickle.dump(detections, open(det_out_file, 'w'))
 
@@ -113,7 +128,7 @@ def get_images():
     cur_path = BASE_PATH
 
     # Get camera number
-    print("Which camera would you like to get data from (Accepted: 1 through 3): ", end="")
+    print "Which camera would you like to get data from (Accepted: 1 through 3): ",
     cam_number = str(input())
     cur_path += cam_number
 
@@ -121,25 +136,25 @@ def get_images():
     per_day_dirs = os.listdir(cur_path)
     print("\t Days recorded on camera {}".format(cam_number))
     for i, day in enumerate(per_day_dirs):
-        print(day, end="  ")
+        print day,
         if (i+1) % 10 == 0:
-            print()
+            print ""
     day_input = ""
     while day_input not in per_day_dirs:
-        print("\n\nWhich of the dates above do you want to get data from: ", end="")
-        day_input = input()
+        print "\n\nWhich of the dates above do you want to get data from: ",
+        day_input = str(input())
     cur_path += "/" + day_input
 
     # Get hour
     per_hour_dirs = sorted(os.listdir(cur_path))
-    print("\t Hours recorded on camera {} on day {}".format(cam_number, day_input))
+    print("\t Hours -- (Minutes) recorded on camera {} on day {}".format(cam_number, day_input))
     for i, hour in enumerate(per_hour_dirs):
         minute_range = list_to_ranges(os.listdir(cur_path + "/" + str(hour)), pretty=True)
-        print(hour, minute_range)
+        print hour, "--", minute_range
     hour_input = ""
     while hour_input not in per_hour_dirs:
-        print("\n\nWhich of the hours above do you want to get data from: ", end="")
-        hour_input = input()
+        print "\n\nWhich of the hours above do you want to get data from: ",
+        hour_input = str(input())
     cur_path += "/" + hour_input
 
     # Get images
@@ -154,9 +169,38 @@ def get_images():
     month = path_base[4:6]
     day   = path_base[6:8]
     hour  = path_base[8:10]
-    images_id = "{}_{}_{}_{}".format(year, moth, day, hour)
+    images_id = "{}_{}_{}_{}".format(year, month, day, hour)
 
     return images, images_id
+
+
+
+
+'''
+Finds ranges in a list of numbers. (helper function)
+'''
+def list_to_ranges(num_list, pretty=False):
+    ranges = []
+    num_list = sorted([int(x) for x in num_list])
+    num_list.append(max(num_list) + 10) # Takes care of final range
+    cur_range_start = num_list[0]
+    x_prev          = num_list[0]
+
+    for x in num_list[1:]:
+        if x != x_prev+1:
+            ranges.append((x_prev, ) if x_prev == cur_range_start else (cur_range_start, x_prev))
+            cur_range_start = x
+        x_prev = x
+
+    if pretty == True:
+        pretty_ranges = []
+        for r in ranges:
+            pretty_ranges.append("{}-{}".format(r[0],r[1]) if len(r) == 2 else "{}".format(r[0]))
+        return ", ".join(pretty_ranges)
+    else:
+        return ranges
+
+
 
 
 
@@ -230,16 +274,21 @@ def decrypt_image(image_file):
     '''
     Decrypt image
     '''
-    fileAsData = np.fromfile(image_path, np.int8)
+    fileAsData = np.fromfile(image_file, np.int8)
     bytesRemaining = fileAsData.size
     while bytesRemaining > 0:
         blockStart = fileAsData.size - bytesRemaining
         blockSize = np.minimum(bytesRemaining, KEY.size)
         fileAsData[blockStart:blockStart+blockSize] -= KEY[:blockSize]
         bytesRemaining -= blockSize
-    fileInMemory = io.BytesIO(fileAsData.tostring())
+    fileInMemory = StringIO(fileAsData.tostring())
     dataImage = Image.open(fileInMemory)
-    return dataImage
+    dataArray = np.fromstring(str(dataImage.tobytes()), dtype=np.uint8)
+    dataArray = dataArray.reshape([dataImage.size[1], dataImage.size[0], 3])
+    fileInMemory.close()
+    pil_img = Image.fromarray(dataArray)
+    cv2_img = np.array(pil_img)
+    return cv2_img[:,:,::-1].copy()
 
 
 
