@@ -59,11 +59,34 @@ def main():
 
 
 def main_auto():
-    rgb_imags, images_id = get_images()
-    print("Detecting on {}".format(images_id))
-    detections = detect(rgb_images)
-    det_out_file = os.path.join(detector_out_dir, '{}.detections'.format(images_id))
-    pickle.dump(detections, open(det_out_file, 'w'))
+    ''' Get images automatically and run detector over them '''
+    CAMERA_ID = 3
+    camera_path = BASE_PATH + str(CAMERA_ID)
+
+    # Iterate through day, hour, then minute
+    for day in sorted(os.listdir(camera_path)):
+        day_path = camera_path + "/" + str(day)
+        for hour in sorted(os.listdir(day_path)):
+            hour_path = day_path + "/" + str(hour)
+
+            # Make list of all images
+            rgb_images = []
+            for minute in sorted(os.listdir(cur_path)):
+                rgb_images += sorted(glob.glob(hour_path + "/" + str(minute) + "/*image.jpg"))
+
+            # Get id for images
+            path_base = os.path.basename(rgb_images[0])
+            year  = path_base[:4]
+            month = path_base[4:6]
+            day   = path_base[6:8]
+            hour  = path_base[8:10]
+            images_id = "{}_{}_{}_{}".format(year, month, day, hour)
+
+            # Run detector and save output
+            print("Detecting on {}".format(images_id))
+            detections = detect(rgb_images)
+            det_out_file = os.path.join(detector_out_dir, '{}.detections'.format(images_id))
+            pickle.dump(detections, open(det_out_file, 'w'))
 
 
 
@@ -294,4 +317,4 @@ def decrypt_image(image_file):
 
 
 if __name__ == '__main__':
-    main()
+    main_auto()
