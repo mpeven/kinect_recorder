@@ -71,8 +71,12 @@ def main_auto():
 
             # Make list of all images
             rgb_images = []
-            for minute in sorted(os.listdir(cur_path)):
+            for minute in sorted(os.listdir(hour_path)):
                 rgb_images += sorted(glob.glob(hour_path + "/" + str(minute) + "/*image.jpg"))
+
+            # Only run detector if images in this specific hour
+            if len(rgb_images) == 0:
+                continue
 
             # Get id for images
             path_base = os.path.basename(rgb_images[0])
