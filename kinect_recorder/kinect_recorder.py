@@ -58,7 +58,7 @@ class KinectRecorder(Process):
     def __init__(self, keep_running):
         Process.__init__(self)
         self.keep_running = keep_running
-	# Set logging configuration
+        # Set logging configuration
         filehandler = TimedRotatingFileHandler(log_dir + "/" + 'log', when="m", interval=1)
         streamhandler = logging.StreamHandler(stream=sys.stdout)
         logging.basicConfig(
@@ -91,7 +91,7 @@ class KinectRecorder(Process):
         self.set_led(4)
 
         # Make image directories if they don't exist
-        for directory in [tar_dir, tmp_dir, rgb_img_dir, depth_img_dir]:
+        for directory in [tar_dir, tmp_dir, rgb_img_dir, depth_img_dir, log_dir]:
             if not os.path.isdir(directory):
                 os.mkdir(directory)
 
