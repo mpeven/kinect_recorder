@@ -62,6 +62,7 @@ def main_auto():
     ''' Get images automatically and run detector over them '''
     CAMERA_ID = 3
     camera_path = BASE_PATH + str(CAMERA_ID)
+    found_last = False
 
     # Iterate through day, hour, then minute
     for day in sorted(os.listdir(camera_path)):
@@ -85,6 +86,13 @@ def main_auto():
             day   = path_base[6:8]
             hour  = path_base[8:10]
             images_id = "{}_{}_{}_{}".format(year, month, day, hour)
+
+            # Make sure it is where we left off
+            print(images_id)
+            if images_id == "2014_10_04_20":
+                found_last = True
+            if found_last == False:
+                continue
 
             # Run detector and save output
             print("Detecting on {}".format(images_id))
@@ -116,7 +124,10 @@ def detect(rgb_images):
     # Save detections in a list
     detections = []
     for image_index, image in tqdm(enumerate(rgb_images)):
-        im = decrypt_image(image)
+        try:
+            im = decrypt_image(image)
+        except IOError:
+            continue
         scores, boxes = im_detect(net, im)
         CONF_THRESH = 0.68
         NMS_THRESH = 0.3

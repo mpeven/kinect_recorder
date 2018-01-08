@@ -1,3 +1,6 @@
+# Trained models
+*.caffemodel
+
 # Mac stuff
 .DS_Store
 
